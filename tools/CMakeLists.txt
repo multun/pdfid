@@ -16,6 +16,7 @@ SUBDIRS(
 	podofoimpose
 	podofoincrementalupdates
 	podofoxmp
+	pdfid
 	)
 
 IF(PODOFO_HAVE_OPENSSL)
