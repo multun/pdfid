@@ -31,6 +31,7 @@
  *   files in the program, then also delete it here.                       *
  ***************************************************************************/
 
+#include <iostream>
 #include "PdfDictionary.h"
 
 #include "PdfOutputDevice.h"
@@ -68,7 +69,7 @@ const PdfDictionary & PdfDictionary::operator=( const PdfDictionary & rhs )
         m_mapKeys[(*it).first] = new PdfObject( *(*it).second );
         ++it;
     }
-    
+
     m_bDirty = true;
     return *this;
 }
@@ -188,8 +189,8 @@ PdfObject* PdfDictionary::GetKey( const PdfName & key )
 pdf_int64 PdfDictionary::GetKeyAsLong( const PdfName & key, pdf_int64 lDefault ) const
 {
     const PdfObject* pObject = GetKey( key );
-    
-    if( pObject && pObject->GetDataType() == ePdfDataType_Number ) 
+
+    if( pObject && pObject->GetDataType() == ePdfDataType_Number )
     {
         return pObject->GetNumber();
     }
@@ -200,7 +201,7 @@ pdf_int64 PdfDictionary::GetKeyAsLong( const PdfName & key, pdf_int64 lDefault )
 double PdfDictionary::GetKeyAsReal( const PdfName & key, double dDefault ) const
 {
     const PdfObject* pObject = GetKey( key );
-    
+
     if( pObject && (
         pObject->GetDataType() == ePdfDataType_Real ||
         pObject->GetDataType() == ePdfDataType_Number))
@@ -215,7 +216,7 @@ bool PdfDictionary::GetKeyAsBool( const PdfName & key, bool bDefault ) const
 {
     const PdfObject* pObject = GetKey( key );
 
-    if( pObject && pObject->GetDataType() == ePdfDataType_Bool ) 
+    if( pObject && pObject->GetDataType() == ePdfDataType_Bool )
     {
         return pObject->GetBool();
     }
@@ -227,20 +228,20 @@ PdfName PdfDictionary::GetKeyAsName( const PdfName & key ) const
 {
     const PdfObject* pObject = GetKey( key );
 
-    if( pObject && pObject->GetDataType() == ePdfDataType_Name ) 
+    if( pObject && pObject->GetDataType() == ePdfDataType_Name )
     {
         return pObject->GetName();
     }
-    
+
     return PdfName("");	// return an empty name
-        
+
 }
 
 bool PdfDictionary::HasKey( const PdfName & key ) const
 {
     if( !key.GetLength() )
         return false;
-    
+
     return ( m_mapKeys.find( key ) != m_mapKeys.end() );
 }
 
@@ -259,64 +260,64 @@ bool PdfDictionary::RemoveKey( const PdfName & identifier )
     return false;
 }
 
+static bool comp_dict_vals(const TKeyMap::value_type *i, const TKeyMap::value_type *j) {
+    const std::string &i_key = i->first.GetName();
+    const std::string &j_key = j->first.GetName();
+    // the type key is always the first
+    if (i->first == PdfName::KeyType)
+        return true;
+    if (j->first == PdfName::KeyType)
+        return false;
+
+    return i_key < j_key;
+}
+
 void PdfDictionary::Write( PdfOutputDevice* pDevice, EPdfWriteMode eWriteMode, const PdfEncrypt* pEncrypt, const PdfName & keyStop ) const
 {
-    TCIKeyMap     itKeys;
+    // keyStop isn't supported yet in this patched version
+    if( keyStop != PdfName::KeyNull && keyStop.GetLength())
+        abort();
 
-    if( (eWriteMode & ePdfWriteMode_Clean) == ePdfWriteMode_Clean ) 
-    {
-        pDevice->Print( "<<\n" );
-    } 
-    else
-    {
-        pDevice->Print( "<<" );
-    }
-    itKeys     = m_mapKeys.begin();
+    // helper to write a dict kv pair
+    auto write_item = [&](const TKeyMap::value_type *item) {
+        // write the key
+        item->first.Write( pDevice, eWriteMode );
+        if( (eWriteMode & ePdfWriteMode_Clean) == ePdfWriteMode_Clean )
+            pDevice->Write( " ", 1 ); // write a separator
 
-    if( keyStop != PdfName::KeyNull && keyStop.GetLength() && keyStop == PdfName::KeyType )
-        return;
+        // write the value
+        item->second->Write( pDevice, eWriteMode, pEncrypt );
+        if( (eWriteMode & ePdfWriteMode_Clean) == ePdfWriteMode_Clean )
+            pDevice->Write( "\n", 1 );
+    };
 
-    if( this->HasKey( PdfName::KeyType ) ) 
-    {
-        // Type has to be the first key in any dictionary
-        if( (eWriteMode & ePdfWriteMode_Clean) == ePdfWriteMode_Clean ) 
-        {
-            pDevice->Print( "/Type " );
-        }
+    // open the dictionnary
+    pDevice->Print( "<<" );
+    if( (eWriteMode & ePdfWriteMode_Clean) == ePdfWriteMode_Clean )
+        pDevice->Print( "\n" );
+
+    long dict_start_offset = pDevice->Tell();
+
+    // push all pairs in a vector, except the type key, which is written
+    std::vector<const TKeyMap::value_type*> iter_values;
+    for(auto itKeys = m_mapKeys.begin(); itKeys != m_mapKeys.end(); ++itKeys)
+        if( (*itKeys).first == PdfName::KeyType )
+            write_item(&*itKeys);
         else
-        {
-            pDevice->Print( "/Type" );
-        }
+            iter_values.push_back(&*itKeys);
 
-        this->GetKey( PdfName::KeyType )->Write( pDevice, eWriteMode, pEncrypt );
-
-        if( (eWriteMode & ePdfWriteMode_Clean) == ePdfWriteMode_Clean ) 
-        {
-            pDevice->Print( "\n" );
-        }
-    }
-
-    while( itKeys != m_mapKeys.end() )
+    // open the dictionnary
+    if (pDevice->dictencode_stream != nullptr)
     {
-        if( (*itKeys).first != PdfName::KeyType )
-        {
-            if( keyStop != PdfName::KeyNull && keyStop.GetLength() && (*itKeys).first == keyStop )
-                return;
-
-            (*itKeys).first.Write( pDevice, eWriteMode );
-            if( (eWriteMode & ePdfWriteMode_Clean) == ePdfWriteMode_Clean ) 
-            {
-                pDevice->Write( " ", 1 ); // write a separator
-            }
-            (*itKeys).second->Write( pDevice, eWriteMode, pEncrypt );
-            if( (eWriteMode & ePdfWriteMode_Clean) == ePdfWriteMode_Clean ) 
-            {
-                pDevice->Write( "\n", 1 );
-            }
-        }
-        
-        ++itKeys;
+        std::sort(iter_values.begin(), iter_values.end(), comp_dict_vals);
+        auto available_bits = size_available_bits(iter_values.size());
+        auto permutation_id = bit_istream_pull_mpz(*pDevice->dictencode_stream, available_bits);
+        unrank1(iter_values, permutation_id);
+        std::cout << "wrote " << dict_start_offset << " offset " << available_bits << " bits " << permutation_id << " num" << std::endl;
     }
+
+    for(auto& itKeys : iter_values)
+        write_item(itKeys);
 
     pDevice->Print( ">>" );
 }
@@ -326,7 +327,7 @@ bool PdfDictionary::IsDirty() const
     // If the dictionary itself is dirty
     // return immediately
     // otherwise check all children.
-    if( m_bDirty ) 
+    if( m_bDirty )
         return m_bDirty;
 
     TKeyMap::const_iterator it = this->GetKeys().begin();

@@ -8,4 +8,5 @@ SUBDIRS(
 	helloworld
 	helloworld-base14
 	${graph}
+	pdfid
 	)

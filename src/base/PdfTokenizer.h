@@ -37,6 +37,7 @@
 #include "PdfDefines.h"
 #include "PdfRefCountedBuffer.h"
 #include "PdfRefCountedInputDevice.h"
+#include "DictEncode.h"
 
 #include <deque>
 #include <sstream>
@@ -84,7 +85,7 @@ class PODOFO_API PdfTokenizer {
      *  \param[out] peType On true return, if not NULL the type of the read token
      *                     will be stored into this parameter. Undefined on false
      *                     return.
-     * 
+     *
      *  \returns           True if a token was read, false if there are no
      *                     more tokens to read.
      *
@@ -98,7 +99,7 @@ class PODOFO_API PdfTokenizer {
      *
      *  If there is no next token available, throws UnexpectedEOF.
      *
-     *  \param pszToken a token that is compared to the 
+     *  \param pszToken a token that is compared to the
      *                  read token
      *
      *  \returns true if the read token equals the passed token.
@@ -127,7 +128,7 @@ class PODOFO_API PdfTokenizer {
      */
     void GetNextVariant( PdfVariant& rVariant, PdfEncrypt* pEncrypt );
 
-    /** Returns true if the given character is a whitespace 
+    /** Returns true if the given character is a whitespace
      *  according to the pdf reference
      *
      *  \returns true if it is a whitespace character otherwise false
@@ -195,7 +196,7 @@ class PODOFO_API PdfTokenizer {
 
     /** Read a dictionary from the input device
      *  and store it into a variant.
-     * 
+     *
      *  \param rVariant store the dictionary into this variable
      *  \param pEncrypt an encryption object which is used to decrypt strings during parsing
      */
@@ -203,7 +204,7 @@ class PODOFO_API PdfTokenizer {
 
     /** Read an array from the input device
      *  and store it into a variant.
-     * 
+     *
      *  \param rVariant store the array into this variable
      *  \param pEncrypt an encryption object which is used to decrypt strings during parsing
      */
@@ -211,7 +212,7 @@ class PODOFO_API PdfTokenizer {
 
     /** Read a string from the input device
      *  and store it into a variant.
-     * 
+     *
      *  \param rVariant store the string into this variable
      *  \param pEncrypt an encryption object which is used to decrypt strings during parsing
      */
@@ -219,7 +220,7 @@ class PODOFO_API PdfTokenizer {
 
     /** Read a hex string from the input device
      *  and store it into a variant.
-     * 
+     *
      *  \param rVariant store the hex string into this variable
      *  \param pEncrypt an encryption object which is used to decrypt strings during parsing
      */
@@ -227,7 +228,7 @@ class PODOFO_API PdfTokenizer {
 
     /** Read a name from the input device
      *  and store it into a variant.
-     * 
+     *
      *  Throws UnexpectedEOF if there is nothing to read.
      *
      *  \param rVariant store the name into this variable
@@ -276,7 +277,7 @@ class PODOFO_API PdfTokenizer {
 };
 
 // -----------------------------------------------------
-// 
+//
 // -----------------------------------------------------
 inline bool PdfTokenizer::IsWhitespace(const unsigned char ch)
 {
@@ -284,7 +285,7 @@ inline bool PdfTokenizer::IsWhitespace(const unsigned char ch)
 }
 
 // -----------------------------------------------------
-// 
+//
 // -----------------------------------------------------
 inline bool PdfTokenizer::IsDelimiter(const unsigned char ch)
 {
@@ -292,7 +293,7 @@ inline bool PdfTokenizer::IsDelimiter(const unsigned char ch)
 }
 
 // -----------------------------------------------------
-// 
+//
 // -----------------------------------------------------
 inline bool PdfTokenizer::IsRegular(const unsigned char ch)
 {
@@ -300,7 +301,7 @@ inline bool PdfTokenizer::IsRegular(const unsigned char ch)
 }
 
 // -----------------------------------------------------
-// 
+//
 // -----------------------------------------------------
 inline bool PdfTokenizer::IsPrintable(const unsigned char ch)
 {
@@ -308,7 +309,7 @@ inline bool PdfTokenizer::IsPrintable(const unsigned char ch)
 }
 
 // -----------------------------------------------------
-// 
+//
 // -----------------------------------------------------
 inline int PdfTokenizer::GetHexValue(const unsigned char ch)
 {

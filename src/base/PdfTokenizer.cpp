@@ -42,9 +42,12 @@
 #include "PdfReference.h"
 #include "PdfVariant.h"
 #include "PdfDefinesPrivate.h"
+#include "DictEncode.h"
 
 #include <limits>
 #include <sstream>
+#include <iostream>
+#include <algorithm>
 
 #include <stdlib.h>
 #include <string.h>
@@ -598,13 +601,15 @@ void PdfTokenizer::ReadDictionary( PdfVariant& rVariant, PdfEncrypt* pEncrypt )
     EPdfTokenType eType;
     const char *  pszToken;
 
+    long dict_start_offset = m_device.Device()->Tell();
+
+    std::vector<std::string> key_vect;
     for( ;; )
     {
         bool gotToken = this->GetNextToken( pszToken, &eType );
         if (!gotToken)
-        {
             PODOFO_RAISE_ERROR_INFO(ePdfError_UnexpectedEOF, "Expected dictionary key name or >> delim.");
-        }
+
         if( eType == ePdfTokenType_Delimiter && strncmp( ">>", pszToken, DICT_SEP_LENGTH ) == 0 )
             break;
 
@@ -618,12 +623,24 @@ void PdfTokenizer::ReadDictionary( PdfVariant& rVariant, PdfEncrypt* pEncrypt )
             dict.GetKey( "Type" )->GetDataType() == ePdfDataType_Name &&
             dict.GetKey( "Type" )->GetName() == PdfName( "Sig" );
 
+        if (key != PdfName::KeyType)
+            key_vect.push_back(key.GetName());
+
         // Get the next variant. If there isn't one, it'll throw UnexpectedEOF.
         this->GetNextVariant( val, bIsSigContents ? NULL : pEncrypt );
 
         dict.AddKey( key, val );
     }
 
+    auto stream = m_device.Device()->dictdecode_stream;
+    if (stream != nullptr)
+    {
+        auto reference_vect = key_vect;
+        std::sort(reference_vect.begin(), reference_vect.end());
+        auto available_bits = size_available_bits(reference_vect.size());
+        auto rank = rank1(reference_vect, key_vect);
+        stream->push(dict_start_offset, std::move(rank), available_bits);
+    }
     rVariant = dict;
 }
 

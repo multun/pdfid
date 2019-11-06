@@ -164,6 +164,7 @@ SET(PODOFO_BASE_HEADERS
    base/PdfXRefStream.h
    base/PdfXRefStreamParserObject.h
    base/podofoapi.h
+   base/DictEncode.h
    )
 
 SET(PODOFO_BASE_HEADERS2 
