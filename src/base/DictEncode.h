@@ -88,35 +88,39 @@ static mpz_class mpz_class_fac(size_t n)
 
 struct bit_istream
 {
-    bit_istream(std::istream &stream)
+    bit_istream(std::istream *stream)
         : stream(stream)
-        , data(0)
+        , data(stream ? 0 : EOF)
         , cur_bit(8)
+        , bit_size(0)
     {}
+
+    bool eof()
+    {
+        return data == EOF;
+    }
 
     int next()
     {
-        if (data == -1)
-            return -1;
+        if (data == EOF)
+            return EOF;
 
         if (cur_bit == 8)
         {
-            if (stream.eof())
-            {
-                data = -1;
-                return -1;
-            }
-            data = stream.get();
+            if ((data = stream->get()) == EOF)
+                return EOF;
             cur_bit = 0;
         }
 
         return (data >> cur_bit++) & 1;
     }
 
+    size_t bit_size;
+
 private:
     size_t cur_bit;
     int data;
-    std::istream &stream;
+    std::istream *stream;
 };
 
 struct bit_ostream

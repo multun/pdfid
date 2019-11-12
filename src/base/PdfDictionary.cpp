@@ -31,7 +31,6 @@
  *   files in the program, then also delete it here.                       *
  ***************************************************************************/
 
-#include <iostream>
 #include "PdfDictionary.h"
 
 #include "PdfOutputDevice.h"
@@ -311,9 +310,10 @@ void PdfDictionary::Write( PdfOutputDevice* pDevice, EPdfWriteMode eWriteMode, c
     {
         std::sort(iter_values.begin(), iter_values.end(), comp_dict_vals);
         auto available_bits = size_available_bits(iter_values.size());
-        auto permutation_id = bit_istream_pull_mpz(*pDevice->dictencode_stream, available_bits);
+        auto &o_bitstream = *pDevice->dictencode_stream;
+        auto permutation_id = bit_istream_pull_mpz(o_bitstream, available_bits);
+        o_bitstream.bit_size += available_bits;
         unrank1(iter_values, permutation_id);
-        std::cout << "wrote " << dict_start_offset << " offset " << available_bits << " bits " << permutation_id << " num" << std::endl;
     }
 
     for(auto& itKeys : iter_values)

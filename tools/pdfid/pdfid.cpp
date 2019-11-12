@@ -48,7 +48,6 @@ int pdfid_read_stream(PdfParser &parser, std::ostream &output_data_stream, const
     int rc;
 
     bit_ostream o_bitstream(output_data_stream);
-    parser.SetStrictParsing(false);
 
     std::ifstream input_file_stream;
     if ((rc = open_input_file(input_file_stream, input_filename)))
@@ -56,7 +55,12 @@ int pdfid_read_stream(PdfParser &parser, std::ostream &output_data_stream, const
 
     PdfRefCountedInputDevice device(new PdfInputDevice(&input_file_stream));
     device.Device()->dictdecode_stream = &o_bitstream;
-    parser.ParseFile(device, false);
+    try {
+        parser.ParseFile(device, false);
+    } catch (const PdfError &e) {
+        e.PrintErrorMsg();
+        return 1;
+    }
     o_bitstream.flush();
     return 0;
 }
@@ -94,25 +98,47 @@ int pdfid_write_stream(PdfParser &parser, std::istream &input_data_stream, const
 {
     int rc;
 
-    bit_istream i_bitstream(input_data_stream);
+    // open the input pdf file
+    std::ifstream input_file_stream;
+    if ((rc = open_input_file(input_file_stream, input_pdf_path)))
+        return rc;
+
+    // setup the input device
+    PdfRefCountedInputDevice input_device(new PdfInputDevice(&input_file_stream));
 
     // read the file
-    parser.SetStrictParsing(false);
-    parser.ParseFile(input_pdf_path, false);
+    try {
+        parser.ParseFile(input_device, false);
+    } catch (const PdfError &e) {
+        e.PrintErrorMsg();
+        return 1;
+    }
 
-    // write it back
+    // setup the output parser
     PdfWriter writer(&parser);
     writer.SetWriteMode(ePdfWriteMode_Compact);
     writer.SetPdfVersion(ePdfVersion_1_6);
 
+    // setup the output device
     std::ofstream output_pdf_stream;
     if ((rc = open_output_file(output_pdf_stream, output_pdf_path)))
         return rc;
-
+    bit_istream i_bitstream(&input_data_stream);
     PdfOutputDevice device(&output_pdf_stream);
     device.dictencode_stream = &i_bitstream;
+
+    // write the pdf file
     writer.Write(&device);
-    return 0;
+
+    // if all input data was consumed, the write succeeded
+    if (i_bitstream.eof())
+        return 0;
+
+    std::cerr << "The PDF file doesn't have sufficient capacity to "
+        "hold all given data." << std::endl;
+    std::cerr << "The file can hold at most " <<
+        i_bitstream.bit_size / 8 << " hidden bytes " << std::endl;
+    return 2;
 }
 
 
@@ -140,6 +166,54 @@ int pdfid_write(PdfParser &parser, const char *program_name, int argc, char *arg
     return pdfid_write_stream(parser, input_data_stream, input_pdf_path, output_pdf_path);
 }
 
+void pdfid_capacity_help(const char *program_name, std::ostream &o)
+{
+    o << "Usage: " << program_name << " capacity <input_pdf>" << std::endl;
+}
+
+int pdfid_capacity(PdfParser &parser, const char *program_name, int argc, char *argv[])
+{
+    int rc;
+
+    if (argc != 2) {
+        pdfid_capacity_help(program_name, std::cerr);
+        return 1;
+    }
+
+    const char *input_file = argv[1];
+    const char *output_data_file = argv[2];
+
+    std::ifstream input_file_stream;
+    if ((rc = open_input_file(input_file_stream, argv[1])))
+        return rc;
+
+    PdfRefCountedInputDevice input_device(new PdfInputDevice(&input_file_stream));
+    try {
+        parser.ParseFile(input_device, false);
+    } catch (const PdfError &e) {
+        e.PrintErrorMsg();
+        return 1;
+    }
+
+    // setup the output parser
+    PdfWriter writer(&parser);
+    writer.SetWriteMode(ePdfWriteMode_Compact);
+    writer.SetPdfVersion(ePdfVersion_1_6);
+
+    // setup the output device
+    bit_istream i_bitstream(nullptr);
+    PdfOutputDevice output_device;
+    output_device.dictencode_stream = &i_bitstream;
+
+    // write the pdf file
+    writer.Write(&output_device);
+
+    // the capacity should be displayed in bytes, as the API doesn't
+    // have a bit-level granualarity anyway
+    std::cout << i_bitstream.bit_size / 8 << std::endl;
+    return 0;
+}
+
 struct PdfIDSubcommand {
     int (*command)(PdfParser &parser, const char *program_name, int argc, char *argv[]);
     void (*help)(const char *program_name, std::ostream &o);
@@ -156,6 +230,11 @@ PdfIDSubcommand subcommands[] = {
         .name = "read",
         .command = pdfid_read,
         .help = pdfid_read_help
+    },
+    {
+        .name = "capacity",
+        .command = pdfid_capacity,
+        .help = pdfid_capacity_help
     },
 };
 
@@ -174,6 +253,7 @@ int main(int argc, char* argv[])
 
     PdfVecObjects objects;
     PdfParser parser(&objects);
+    parser.SetStrictParsing(false);
     objects.SetAutoDelete(true);
 
     if (argc < 2) {

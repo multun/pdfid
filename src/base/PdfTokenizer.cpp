@@ -632,6 +632,7 @@ void PdfTokenizer::ReadDictionary( PdfVariant& rVariant, PdfEncrypt* pEncrypt )
         dict.AddKey( key, val );
     }
 
+
     auto stream = m_device.Device()->dictdecode_stream;
     if (stream != nullptr)
     {
