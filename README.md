@@ -31,3 +31,45 @@ sh$ diff recovered-data.txt hidden-data.txt
 sh$ echo $?
 0
 ```
+
+# Build instructions
+
+The build process is a bit awkward, as pdfid is an in-tree patch of a library.
+
+The package depends on all packages needed by PoDoFo, plus `libgmp-dev`.
+
+```
+ cmake
+ libboost-dev
+ libcppunit-dev
+ libfontconfig1-dev
+ libfreetype6-dev
+ libidn11-dev
+ libjpeg-dev
+ liblua5.1-0-dev
+ libssl-dev
+ libtiff-dev
+ libunistring-dev
+ zlib1g-dev
+ libgmp-dev
+```
+
+``` sh
+mkdir build
+cd build
+
+# prepare the out of tree build.
+# the library must be staticaly linked against pdfid, as the shared
+# library would conflict with the unpatched version of PoDoFo.
+cmake -DPODOFO_BUILD_SHARED=OFF \
+      -DPODOFO_BUILD_STATIC=ON \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DCMAKE_BUILD_TYPE=Release ..
+
+# only build what's required.
+# the `all` target build all tests and tools
+make pdfid
+
+# run the correct subset of `make install`
+DESTDIR="${DESTDIR:?missing DESTDIR}" cmake -DCOMPONENT=pdfid -P ./cmake_install.cmake
+```
