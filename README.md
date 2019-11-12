@@ -4,7 +4,7 @@
 
 [pdfid](https://github.com/multun/pdfid) is a tool for hiding small amounts of data in pdf files. It uses a modified version of [PoDoFo](http://podofo.sourceforge.net/).
 
-It was to designed enable identifying publishers of confidential data.
+It was designed to enable identifying publishers of confidential data.
 
 # Pros
 
@@ -17,3 +17,17 @@ It was to designed enable identifying publishers of confidential data.
  - each pdf file only has a limited hidden storage space.
  - when reading, there's no way to know how much of the hidden storage space of the pdf is actually used. The `-r` option just reads all of it.
  - parsing and re-writting a PDF file destroys all hidden data.
+
+# Usage
+
+```
+sh$ pdfid capacity document.pdf
+291
+sh$ du -b hidden-data.txt
+4	hidden-data.txt
+sh$ pdfid write document.pdf document-for-bob.pdf hidden-data.txt
+sh$ pdfid read document-for-bob.pdf | head -c 4 > recovered-data.txt
+sh$ diff recovered-data.txt hidden-data.txt
+sh$ echo $?
+0
+```
