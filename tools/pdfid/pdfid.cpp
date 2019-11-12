@@ -180,9 +180,6 @@ int pdfid_capacity(PdfParser &parser, const char *program_name, int argc, char *
         return 1;
     }
 
-    const char *input_file = argv[1];
-    const char *output_data_file = argv[2];
-
     std::ifstream input_file_stream;
     if ((rc = open_input_file(input_file_stream, argv[1])))
         return rc;
@@ -215,9 +212,9 @@ int pdfid_capacity(PdfParser &parser, const char *program_name, int argc, char *
 }
 
 struct PdfIDSubcommand {
+    const char *name;
     int (*command)(PdfParser &parser, const char *program_name, int argc, char *argv[]);
     void (*help)(const char *program_name, std::ostream &o);
-    const char *name;
 };
 
 PdfIDSubcommand subcommands[] = {
@@ -246,8 +243,6 @@ void help(const char *program_name, std::ostream &o)
 
 int main(int argc, char* argv[])
 {
-    int rc;
-
     PdfError::EnableLogging(true);
     PdfError::EnableDebug(true);
 

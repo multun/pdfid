@@ -295,8 +295,6 @@ void PdfDictionary::Write( PdfOutputDevice* pDevice, EPdfWriteMode eWriteMode, c
     if( (eWriteMode & ePdfWriteMode_Clean) == ePdfWriteMode_Clean )
         pDevice->Print( "\n" );
 
-    long dict_start_offset = pDevice->Tell();
-
     // push all pairs in a vector, except the type key, which is written
     std::vector<const TKeyMap::value_type*> iter_values;
     for(auto itKeys = m_mapKeys.begin(); itKeys != m_mapKeys.end(); ++itKeys)

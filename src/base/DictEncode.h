@@ -89,10 +89,10 @@ static mpz_class mpz_class_fac(size_t n)
 struct bit_istream
 {
     bit_istream(std::istream *stream)
-        : stream(stream)
-        , data(stream ? 0 : EOF)
+        : bit_size(0)
         , cur_bit(8)
-        , bit_size(0)
+        , data(stream ? 0 : EOF)
+        , stream(stream)
     {}
 
     bool eof()
@@ -126,9 +126,9 @@ private:
 struct bit_ostream
 {
     bit_ostream(std::ostream &stream)
-        : stream(stream)
+        : cur_bit(0)
         , data(0)
-        , cur_bit(0)
+        , stream(stream)
     {}
 
     void push_bit(bool bit)
@@ -168,12 +168,12 @@ private:
     std::ostream &stream;
 };
 
-static size_t mpz_class_sizeinbase(const mpz_class& num, size_t base)
+static inline size_t mpz_class_sizeinbase(const mpz_class& num, size_t base)
 {
     return mpz_sizeinbase(num.get_mpz_t(), base);
 }
 
-static size_t perm_available_bits(const mpz_class &permutation_count)
+static inline size_t perm_available_bits(const mpz_class &permutation_count)
 {
     // simple tests here:
     // assert(perm_available_bits(6) == 2);
@@ -184,7 +184,7 @@ static size_t perm_available_bits(const mpz_class &permutation_count)
     return mpz_class_sizeinbase(permutation_count, 2) - 1;
 }
 
-static size_t size_available_bits(size_t size)
+static inline size_t size_available_bits(size_t size)
 {
     // count permutations
     auto permutation_count = mpz_class_fac(size);
@@ -193,7 +193,7 @@ static size_t size_available_bits(size_t size)
     return perm_available_bits(permutation_count);
 }
 
-static std::vector<const map_t::value_type*> map_reference(map_t map)
+static inline std::vector<const map_t::value_type*> map_reference(map_t map)
 {
     std::vector<const map_t::value_type*> map_vect;
     for(const auto& item : map)
@@ -203,7 +203,7 @@ static std::vector<const map_t::value_type*> map_reference(map_t map)
     return sorted_map_vect;
 }
 
-static mpz_class bit_istream_pull_mpz(bit_istream &bit_istream, size_t available_bits)
+static inline mpz_class bit_istream_pull_mpz(bit_istream &bit_istream, size_t available_bits)
 {
     mpz_class permutation_id = 0;
     for (size_t i = 0; i < available_bits; i++)
